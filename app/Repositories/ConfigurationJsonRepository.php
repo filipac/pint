@@ -2,6 +2,9 @@
 
 namespace App\Repositories;
 
+use App\Project;
+use PhpToken;
+
 class ConfigurationJsonRepository
 {
     /**
@@ -80,7 +83,7 @@ class ConfigurationJsonRepository
             ->map(function ($fixerPath) {
                 $fixerProjectPath = Project::path().'/'.$fixerPath;
 
-                spl_autoload_register(fn () => require_once ($fixerProjectPath));
+                spl_autoload_register(fn () => require_once($fixerProjectPath));
 
                 $tokens = PhpToken::tokenize(file_get_contents($fixerProjectPath));
 
@@ -94,7 +97,7 @@ class ConfigurationJsonRepository
 
                 $fixerClasspath = $namespace.'\\'.basename($fixerPath, '.php');
 
-                return new $fixerClasspath;
+                return new $fixerClasspath();
             })
             ->toArray();
     }
@@ -106,9 +109,9 @@ class ConfigurationJsonRepository
      */
     protected function get()
     {
-        if (! is_null($this->path) && $this->fileExists((string) $this->path)) {
+        if (!is_null($this->path) && $this->fileExists((string) $this->path)) {
             return tap(json_decode(file_get_contents($this->path), true), function ($configuration) {
-                if (! is_array($configuration)) {
+                if (!is_array($configuration)) {
                     abort(1, sprintf('The configuration file [%s] is not valid JSON.', $this->path));
                 }
             });
