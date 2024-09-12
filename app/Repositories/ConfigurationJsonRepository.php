@@ -70,6 +70,36 @@ class ConfigurationJsonRepository
     }
 
     /**
+     * Get the custom fixers.
+     *
+     * @return array<int, \PhpCsFixer\Fixer\FixerInterface>
+     */
+    public function customFixers()
+    {
+        return collect($this->get()['custom-fixers'] ?? [])
+            ->map(function ($fixerPath) {
+                $fixerProjectPath = Project::path().'/'.$fixerPath;
+
+                spl_autoload_register(fn () => require_once ($fixerProjectPath));
+
+                $tokens = PhpToken::tokenize(file_get_contents($fixerProjectPath));
+
+                $namespace = null;
+                foreach ($tokens as $idx => $token) {
+                    if ($token->id == T_NAMESPACE) {
+                        $namespace = $tokens[$idx + 2]->text;
+                        break;
+                    }
+                }
+
+                $fixerClasspath = $namespace.'\\'.basename($fixerPath, '.php');
+
+                return new $fixerClasspath;
+            })
+            ->toArray();
+    }
+
+    /**
      * Get the configuration from the "pint.json" file.
      *
      * @return array<string, array<int, string>|string>
